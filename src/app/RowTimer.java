@@ -1,10 +1,13 @@
 package app;
 
+import javazoom.jl.converter.Converter;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -162,62 +165,51 @@ public class RowTimer extends JPanel implements ActionListener {
 
     private void getInitialTime() {
 
-        final int MINUTES_PER_HOUR = 60;
-        final int SECONDS_PER_MINUTE = 60;
-        final int MILLISECONDS_PER_SECOND = 1000;
-        final int SECONDS_PER_HOUR = 3600;
-
-        int hours = 0;
-        int minutes = 0;
-        int seconds = 0;
+        String selection = (String) this.timerTypeComboBox.getSelectedItem();
 
         this.initialTime = 0;
 
-        if (this.timerTypeComboBox.getSelectedItem().equals(OPTION_1)) {
+        assert selection != null;
+        if (selection.equals(OPTION_1)) {
 
-            Date date = (Date) simpleSpinner.getValue();
-            hours = date.getHours();
-            minutes = date.getMinutes();
-            seconds = date.getSeconds();
+            Calendar endTime = Calendar.getInstance();
+            endTime.setTime((Date) simpleSpinner.getValue());
 
-            this.initialTime = hours; // Add hours to the timer to be later multiplied into minutes below
+            this.initialTime += UnitConverter.hoursToMilliseconds(endTime.get(Calendar.HOUR));
+            this.initialTime += UnitConverter.minutesToMilliseconds(endTime.get(Calendar.MINUTE));
+            this.initialTime += UnitConverter.secondsToMilliseconds(endTime.get(Calendar.SECOND));
 
         } else if (this.timerTypeComboBox.getSelectedItem().equals(OPTION_2)) {
 
-            Date date = (Date) relativeSpinner.getValue();
-            minutes = date.getMinutes();
-            seconds = date.getSeconds();
+            // Start time is the current time in ms past the hour
+            Calendar calendar = Calendar.getInstance();
+            int startTime = calendar.get(Calendar.MILLISECOND);
+            startTime += UnitConverter.secondsToMilliseconds(calendar.get(Calendar.SECOND));
+            startTime += UnitConverter.minutesToMilliseconds(calendar.get(Calendar.MINUTE));
 
-            Date timeNow = new Date();
+            // End time is the time after the hour in ms that the timer should finish at
+            calendar.setTime((Date) relativeSpinner.getValue());
+            int endTime = calendar.get(Calendar.MILLISECOND);
+            endTime += UnitConverter.secondsToMilliseconds(calendar.get(Calendar.SECOND));
+            endTime += UnitConverter.minutesToMilliseconds(calendar.get(Calendar.MINUTE));
 
-            int msPastHourTarget = seconds + minutes * MINUTES_PER_HOUR;
-            int msPastHourNow = timeNow.getSeconds() + timeNow.getMinutes() * MINUTES_PER_HOUR;
+            // A negative time difference indicates the time now is past current hour's end time
+            int timeDifference = endTime - startTime;
 
-            int timeDifference;
-
-            // If the time past the hour now is before the target time past the hour
-            if (msPastHourNow < msPastHourTarget) {
-                timeDifference = msPastHourTarget - msPastHourNow;
+            // If end time is after start time by at least 5 seconds
+            if (timeDifference > 5000) {
+                // Time to Alert = Targeted time past the hour - time which has already past
+                this.initialTime = endTime - startTime;
             }
-            else {
-                timeDifference = msPastHourTarget + (SECONDS_PER_HOUR - msPastHourNow);
+            else { // If start time is after end time...
+                // Time to Alert = Time remaining on the current hour + targeted time past the next hour
+                this.initialTime = (UnitConverter.hoursToMilliseconds(1) - startTime) + endTime;
             }
-
-            minutes = timeDifference / 60;  // Extract minutes
-            seconds = timeDifference % 60;  // Extract seconds
-
         }
-
-
-        this.initialTime = this.initialTime * MINUTES_PER_HOUR + minutes;       // Convert and add minutes
-        this.initialTime = this.initialTime * SECONDS_PER_MINUTE + seconds;     // Convert and add seconds
-        this.initialTime = this.initialTime * MILLISECONDS_PER_SECOND;          // Convert to milliseconds
-
 
         this.remainingTime = this.initialTime;                                  // Assign the initial time to the remaining time
 
-        System.out.println("Initial Time: " + this.initialTime);
-        System.out.println("Remaining Time: " + this.remainingTime);
+        System.out.println("Timer countdown initialized to: " + this.initialTime);
 
     }
 
@@ -292,17 +284,10 @@ public class RowTimer extends JPanel implements ActionListener {
     }
 
     private void setAlertSound() {
+        System.out.println("Setting alert sound...");
         String soundFileName = (String) this.alarmOptions.getSelectedItem();
         this.timerCompletedSound = new Audio("sounds/" + soundFileName);
     }
-
-
-
-    ////////////////////
-    // Static Methods //
-    ////////////////////
-
-
 
 
     @Override
