@@ -5,10 +5,8 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Calendar;
-import java.util.Date;
+import java.util.*;
 import java.util.Timer;
-import java.util.TimerTask;
 
 import static app.GlobalVariables.*;
 import static app.GlobalConstants.*;
@@ -21,27 +19,29 @@ public class RowTimer extends JPanel implements ActionListener {
 
     // Timer variable
     private int time;
-    private int minTime = 5000; // Minimum timer duration in milliseconds
     private Timer timer, ticker;
     private Audio alertSound;
     private boolean isTimerRunning = false, isTickerRunning = false;
 
 
     // Component variables
-    private JLabel rowNumberLabel;
-    private JTextField timerNameField;
-    private JButton multiActionButton;
-    private JButton stopButton;
-    private JComboBox<String> timerTypeComboBox;
-    private JComboBox<String> alertOptions;
-    private JPanel clockPanel;
-    private CardLayout clockCardLayout;
-    private JSpinner simpleSpinner;
-    private JSpinner relativeSpinner;
-    private JLabel timeRemaining;
-    private JToggleButton loopToggle;
+    private final JLabel ROW_NUMBER_LABEL;
+    private final JTextField TIMER_NAME_FIELD;
+    private final JButton MULTI_ACTION_BUTTON;
+    private final JButton STOP_BUTTON;
+    private final JComboBox<String> TIMER_OPTIONS;
+    private final JComboBox<String> ALERT_OPTIONS;
+    private final JPanel TIME_PANEL;
+    private final CardLayout TIME_PANEL_LAYOUT;
+    private final JSpinner SIMPLE_SPINNER;
+    private final JSpinner RELATIVE_SPINNER;
+    private final JLabel TIME_REMAINING_LABEL;
+    private final JToggleButton LOOP_TOGGLE;
 
 
+    /**
+     * Default constructor that instantiates a new RowTimer object.
+     */
     public RowTimer() {
 
         // Get the next available row number
@@ -70,102 +70,110 @@ public class RowTimer extends JPanel implements ActionListener {
         GridBagConstraints constraints = new GridBagConstraints();
         constraints.fill = GridBagConstraints.HORIZONTAL;
 
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
         // Row number - Label to show the vertical position of the row
-        this.rowNumberLabel = RowComponents.getRowNumberLabel();
+        this.ROW_NUMBER_LABEL = RowComponents.getRowNumberLabel();
 
         constraints.gridx = xPos++;
         constraints.weightx = 0;
-        this.add(this.rowNumberLabel, constraints);
+        this.add(this.ROW_NUMBER_LABEL, constraints);
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Timer Name - Optional name chosen by the user for the Timer
-        this.timerNameField = RowComponents.getTimerNameField();
+        this.TIMER_NAME_FIELD = RowComponents.getTimerNameField();
 
         constraints.gridx = xPos++;
         constraints.weightx = 1;
-        this.add(this.timerNameField, constraints);
+        this.add(this.TIMER_NAME_FIELD, constraints);
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Multi-action Button - Starts/Pauses/Resumes the Timer
-        this.multiActionButton = RowComponents.getMultiActionButton();
-        this.multiActionButton.addActionListener(this);
+        this.MULTI_ACTION_BUTTON = RowComponents.getMultiActionButton();
+        this.MULTI_ACTION_BUTTON.addActionListener(this);
 
         constraints.gridx = xPos++;
         constraints.weightx = 0;
-        this.add(this.multiActionButton, constraints);
+        this.add(this.MULTI_ACTION_BUTTON, constraints);
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Stop button - Stops and resets the Timer
-        this.stopButton = RowComponents.getStopButton();
-        this.stopButton.addActionListener(this);
+        this.STOP_BUTTON = RowComponents.getStopButton();
+        this.STOP_BUTTON.addActionListener(this);
 
         constraints.gridx = xPos++;
         constraints.weightx = 0;
-        this.add(this.stopButton, constraints);
+        this.add(this.STOP_BUTTON, constraints);
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Timer type dropdown list - Changes how the Timer works
-        this.timerTypeComboBox = RowComponents.getTimerTypeComboBox();
-        this.timerTypeComboBox.addActionListener(this);
-        this.timerTypeComboBox.setActionCommand("Timer Type");
+        this.TIMER_OPTIONS = RowComponents.getTimerOptions();
+        this.TIMER_OPTIONS.addActionListener(this);
+        this.TIMER_OPTIONS.setActionCommand("Timer Type");
 
         constraints.gridx = xPos++;
         constraints.weightx = 0;
-        this.add(this.timerTypeComboBox, constraints);
+        this.add(this.TIMER_OPTIONS, constraints);
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Alarm sound dropdown list - Determines what sound plays when the timer completes
-        this.alertOptions = RowComponents.getAlarmOptions();
-        this.alertOptions.addActionListener(this);
-        this.alertOptions.setActionCommand("Alarm Sound");
+        this.ALERT_OPTIONS = RowComponents.getAlertOptions();
+        this.ALERT_OPTIONS.addActionListener(this);
+        this.ALERT_OPTIONS.setActionCommand("Alarm Sound");
 
         constraints.gridx = xPos++;
         constraints.weightx = 0;
-        this.add(this.alertOptions, constraints);
+        this.add(this.ALERT_OPTIONS, constraints);
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Clock panel - Changes time shown depending on Timer type and state
-        this.clockPanel = RowComponents.getClockPanel();
-        this.clockCardLayout = (CardLayout) this.clockPanel.getLayout();
+        this.TIME_PANEL = RowComponents.getTimePanel();
+        this.TIME_PANEL_LAYOUT = (CardLayout) this.TIME_PANEL.getLayout();
 
         constraints.gridx = xPos++;
         constraints.weightx = 0;
-        this.add(this.clockPanel, constraints);
+        this.add(this.TIME_PANEL, constraints);
 
         // Simple countdown input
-        this.simpleSpinner = RowComponents.getSimpleDateSpinner();
-        this.simpleSpinner.setName("Simple");
-        this.clockPanel.add(this.simpleSpinner, OPTION_1);
+        this.SIMPLE_SPINNER = RowComponents.getSimpleDateSpinner();
+        this.SIMPLE_SPINNER.setName("Simple");
+        this.TIME_PANEL.add(this.SIMPLE_SPINNER, OPTION_1);
 
         // Minutes past the hour input
-        this.relativeSpinner = RowComponents.getRelativeDateSpinner();
-        this.relativeSpinner.setName("Relative");
-        this.clockPanel.add(this.relativeSpinner, OPTION_2);
+        this.RELATIVE_SPINNER = RowComponents.getRelativeDateSpinner();
+        this.RELATIVE_SPINNER.setName("Relative");
+        this.TIME_PANEL.add(this.RELATIVE_SPINNER, OPTION_2);
 
         // Time remaining card
-        this.timeRemaining = RowComponents.getTimeRemainingLabel();
-        this.clockPanel.add(this.timeRemaining, COUNTDOWN);
+        this.TIME_REMAINING_LABEL = RowComponents.getTimeRemainingLabel();
+        this.TIME_PANEL.add(this.TIME_REMAINING_LABEL, COUNTDOWN);
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Timer Repeat Option Toggle
-        this.initializeTimerRepeatToggle(xPos++);
-
-    }
-
-    private void initializeTimerRepeatToggle(int xPos) {
-
-        this.loopToggle = new JToggleButton();
-
-        this.loopToggle.setIcon(REPEAT_SYMBOL_OFF);
-        this.loopToggle.setSelectedIcon(REPEAT_SYMBOL_ON);
-
-        this.loopToggle.setPreferredSize(new Dimension(TIMER_REPEAT_TOGGLE_WIDTH, ROW_HEIGHT));
-
-        // Instantiate a constraints object for adding the component to the TimerRow
-        GridBagConstraints constraints = new GridBagConstraints();
-        constraints.fill = GridBagConstraints.HORIZONTAL;
+        this.LOOP_TOGGLE = RowComponents.getLoopToggle();
 
         constraints.gridx = xPos;
         constraints.weightx = 0;
-        this.add(this.loopToggle, constraints);
+        this.add(this.LOOP_TOGGLE, constraints);
+
     }
 
+    /**
+     * This method is used for calculating the time delay to trigger the final timer event.
+     * For simple timers, it converts the date the user has entered on the spinner directly into milliseconds.
+     * For relative timers, it compares the minutes and seconds on the spinner to the current time past the hour,
+     * and then based off that calculates the milliseconds to the next user defined time past the hour.
+     */
     private void calculateTime() {
 
-        String selection = (String) this.timerTypeComboBox.getSelectedItem();
+        String selection = (String) this.TIMER_OPTIONS.getSelectedItem();
 
         this.time = 0;
 
@@ -173,13 +181,13 @@ public class RowTimer extends JPanel implements ActionListener {
         if (selection.equals(OPTION_1)) {
 
             Calendar endTime = Calendar.getInstance();
-            endTime.setTime((Date) this.simpleSpinner.getValue());
+            endTime.setTime((Date) this.SIMPLE_SPINNER.getValue());
 
             this.time += UnitConverter.hoursToMilliseconds(endTime.get(Calendar.HOUR));
             this.time += UnitConverter.minutesToMilliseconds(endTime.get(Calendar.MINUTE));
             this.time += UnitConverter.secondsToMilliseconds(endTime.get(Calendar.SECOND));
 
-        } else if (this.timerTypeComboBox.getSelectedItem().equals(OPTION_2)) {
+        } else if (Objects.equals(this.TIMER_OPTIONS.getSelectedItem(), OPTION_2)) {
 
             // Start time is the current time in ms past the hour
             Calendar calendar = Calendar.getInstance();
@@ -188,7 +196,7 @@ public class RowTimer extends JPanel implements ActionListener {
             startTime += UnitConverter.minutesToMilliseconds(calendar.get(Calendar.MINUTE));
 
             // End time is the time after the hour in ms that the timer should finish at
-            calendar.setTime((Date) this.relativeSpinner.getValue());
+            calendar.setTime((Date) this.RELATIVE_SPINNER.getValue());
             int endTime = calendar.get(Calendar.MILLISECOND);
             endTime += UnitConverter.secondsToMilliseconds(calendar.get(Calendar.SECOND));
             endTime += UnitConverter.minutesToMilliseconds(calendar.get(Calendar.MINUTE));
@@ -210,8 +218,9 @@ public class RowTimer extends JPanel implements ActionListener {
     }
 
     /**
-     * This method updates the time remaining int class variable, the time remaining JLabel,
-     * and stops the timer if the time remaining has reached 0.
+     * This method updates the time class variable and its associated JLabel. Will also
+     * print a warning in the terminal if this method is being called after the timer should
+     * have stopped in the case the ticker has continued to function.
      */
     private void updateTime() {
 
@@ -223,13 +232,13 @@ public class RowTimer extends JPanel implements ActionListener {
 
             String timeText = "";
 
-            if (timerTypeComboBox.getSelectedItem().equals(OPTION_1)) {
+            if (Objects.equals(TIMER_OPTIONS.getSelectedItem(), OPTION_1)) {
                 timeText = String.format("%02d", hours) + ':';
             }
             timeText += String.format("%02d", minutes) + ':';
             timeText += String.format("%02d", seconds);
 
-            this.timeRemaining.setText(timeText);
+            this.TIME_REMAINING_LABEL.setText(timeText);
         }
         else {
             System.out.println("Warning: time is being updated after the timer has finished");
@@ -237,6 +246,10 @@ public class RowTimer extends JPanel implements ActionListener {
     }
 
     /**
+     * This method returns a TimerTask with the instructions to be carried out at the completion of the timer.
+     * If the timer has not been set to loop, the ticker and timer are cancelled, and the stop button is set to become a reset button.
+     * If the timer is set to loop, the alert sound is reset and the timer restarted.
+     *
      * @return The task that needs to be performed at the end of the timer.
      */
     private TimerTask timerTask() {
@@ -246,16 +259,16 @@ public class RowTimer extends JPanel implements ActionListener {
 
                 alertSound.play();                                      // Play the alert sound to indicate the timer is done
 
-                if (!loopToggle.isSelected()) {                         // If the timer has not been set to loop...
+                if (!LOOP_TOGGLE.isSelected()) {                         // If the timer has not been set to loop...
 
                     stopTicker();                                       // Cancel the ticker
                     stopTimer();                                        // Cancel the timer
 
-                    multiActionButton.setEnabled(false);                // Disable the multi-action button until "Reset" has been pressed to prevent hearing noises from another dimension
-                    multiActionButton.setText("Start");                 // Revert the multi-action button back to Start
-                    multiActionButton.setBackground(GREEN.darker());    // Set "Start" to have a green background
+                    MULTI_ACTION_BUTTON.setEnabled(false);                // Disable the multi-action button until "Reset" has been pressed to prevent hearing noises from another dimension
+                    MULTI_ACTION_BUTTON.setText("Start");                 // Revert the multi-action button back to Start
+                    MULTI_ACTION_BUTTON.setBackground(GREEN.darker());    // Set "Start" to have a green background
 
-                    stopButton.setText("Reset");                        // Set the stop button to "Reset" mode
+                    STOP_BUTTON.setText("Reset");                        // Set the stop button to "Reset" mode
                 }
                 else {                                                  // If the timer is set to loop...
                     setAlertSound();                                    // Reset alert sound
@@ -266,6 +279,8 @@ public class RowTimer extends JPanel implements ActionListener {
     }
 
     /**
+     * This method returns a TimerTask with the instructions to be carried out with each 'tick' of the ticker.
+     * Updates time remaining information for the user.
      *
      * @return The task that needs to be carried out every second while the timer is running.
      */
@@ -279,8 +294,13 @@ public class RowTimer extends JPanel implements ActionListener {
         };
     }
 
+    /**
+     * This method starts a new timer, as well as starting the ticker if necessary.
+     * Also updates the boolean variable which states whether the timer is running.
+     */
     private void startTimer() {
         this.calculateTime();                                                   // Calculate the timer's lifespan
+        int minTime = 5000;                                                     // Minimum timer duration in milliseconds
         if (this.time < minTime) {                                              // If the time's lifespan is below the minimum...
             throw new IllegalArgumentException("Timer is too short!");          // Throw an exception
         }
@@ -297,6 +317,11 @@ public class RowTimer extends JPanel implements ActionListener {
         this.timer.schedule(this.timerTask(), time);                            // Schedule a new timer with its task
     }
 
+    /**
+     * This method starts a new ticker, and will align itself with system time for relative timers.
+     * Its name also has the ability to trick your brain into thinking it says 'kickStarter' when
+     * not looked at directly.
+     */
     private void startTicker() {
         int period = 1000;                                                      // Ticker operates on a per-second basis
         int delay = time % period + period;                                     // Delay to line up ticker with end time
@@ -307,27 +332,45 @@ public class RowTimer extends JPanel implements ActionListener {
         this.isTickerRunning = true;                                            // Indicate ticker is running
     }
 
+    /**
+     * This method stops the timer and updates the associated is running boolean.
+     */
     private void stopTimer() {
         this.timer.cancel();
         this.isTimerRunning = false;
     }
 
+    /**
+     * This method stops the ticker and updates the associated is running boolean.
+     */
     private void stopTicker() {
         this.ticker.cancel();
         this.isTickerRunning = false;
     }
 
+    /**
+     * This method sets the Audio object to play the sound that has been selected in the
+     * available sounds drown down list.
+     */
     private void setAlertSound() {
         System.out.println("Setting alert sound...");
-        String soundFileName = (String) this.alertOptions.getSelectedItem();
+        String soundFileName = (String) this.ALERT_OPTIONS.getSelectedItem();
         this.alertSound = new Audio("sounds/" + soundFileName);
+    }
+
+    public void setRowLabelText(int rowNum) {
+        this.ROW_NUMBER_LABEL.setText(String.valueOf(rowNum));
+    }
+
+    public void setNameFieldText(String text) {
+        this.TIMER_NAME_FIELD.setText(text);
     }
 
 
     @Override
     public void actionPerformed(ActionEvent e) {
 
-        String selectedTimerType = (String) this.timerTypeComboBox.getSelectedItem();
+        String selectedTimerType = (String) this.TIMER_OPTIONS.getSelectedItem();
 
         // ActionEvents for the JComboBoxes
         if (e.getSource() instanceof JComboBox) {
@@ -335,7 +378,7 @@ public class RowTimer extends JPanel implements ActionListener {
             switch (e.getActionCommand()) {
                 case "Timer Type":
                     // Changes what the card panel is displaying for the row
-                    this.clockCardLayout.show(this.clockPanel, selectedTimerType);
+                    this.TIME_PANEL_LAYOUT.show(this.TIME_PANEL, selectedTimerType);
                     break;
 
                 case "Alarm Sound":
@@ -365,10 +408,10 @@ public class RowTimer extends JPanel implements ActionListener {
 
                     this.setAlertSound();                                   // Get and set the currently selected alert sound
 
-                    this.multiActionButton.setText("Pause");                // Set the start button's next option as "Pause"
-                    this.multiActionButton.setBackground(YELLOW);           // Set "Pause" to have a yellow background
-                    this.timerTypeComboBox.setEnabled(false);               // Disable the ComboBox so the user can't change it while the timer is running
-                    this.clockCardLayout.show(this.clockPanel, COUNTDOWN);  // Replace the Spinner with a Label showing the timer's remaining time
+                    this.MULTI_ACTION_BUTTON.setText("Pause");                // Set the start button's next option as "Pause"
+                    this.MULTI_ACTION_BUTTON.setBackground(YELLOW);           // Set "Pause" to have a yellow background
+                    this.TIMER_OPTIONS.setEnabled(false);               // Disable the ComboBox so the user can't change it while the timer is running
+                    this.TIME_PANEL_LAYOUT.show(this.TIME_PANEL, COUNTDOWN);  // Replace the Spinner with a Label showing the timer's remaining time
 
                     break;
 
@@ -377,14 +420,14 @@ public class RowTimer extends JPanel implements ActionListener {
                     this.stopTicker();                                      // Cancel the ticker
                     this.stopTimer();                                       // Cancel the timer
 
-                    this.multiActionButton.setText("Resume");               // Set the start button's next option as "Resume"
-                    this.multiActionButton.setBackground(BLUE);             // Set "Resume" to have a blue background
+                    this.MULTI_ACTION_BUTTON.setText("Resume");               // Set the start button's next option as "Resume"
+                    this.MULTI_ACTION_BUTTON.setBackground(BLUE);             // Set "Resume" to have a blue background
 
                     break;
 
                 case "Reset":
 
-                    this.stopButton.setText("Stop");                        // Revert the stop button back to "Stop"
+                    this.STOP_BUTTON.setText("Stop");                        // Revert the stop button back to "Stop"
                     this.alertSound.stop();                                 // Stops the alarm if still going
 
                     // Reset method continues below in the "Stop" method
@@ -394,14 +437,14 @@ public class RowTimer extends JPanel implements ActionListener {
                     this.stopTicker();                                      // Cancel the ticker
                     this.stopTimer();                                       // Cancel the timer
 
-                    this.multiActionButton.setText("Start");                // Revert the multi-action button back to "Start"
-                    this.multiActionButton.setBackground(GREEN);            // Set "Start" to have a green background
+                    this.MULTI_ACTION_BUTTON.setText("Start");                // Revert the multi-action button back to "Start"
+                    this.MULTI_ACTION_BUTTON.setBackground(GREEN);            // Set "Start" to have a green background
 
                     // Display the associated spinner for the selected timer type in the ComboBox
-                    this.clockCardLayout.show(this.clockPanel, selectedTimerType);
+                    this.TIME_PANEL_LAYOUT.show(this.TIME_PANEL, selectedTimerType);
 
-                    this.timerTypeComboBox.setEnabled(true);                // Re-enable the ComboBox
-                    this.multiActionButton.setEnabled(true);                // Re-enable the Multi-action Button
+                    this.TIMER_OPTIONS.setEnabled(true);                // Re-enable the ComboBox
+                    this.MULTI_ACTION_BUTTON.setEnabled(true);                // Re-enable the Multi-action Button
 
                     break;
             }

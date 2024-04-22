@@ -91,9 +91,9 @@ public final class RowComponents {
      * the row will use. The options available in this drop down menu are determined by
      * what's in the TIMER_TYPE_OPTIONS String array in GlobalConstants.
      *
-     * @return An JComboBox with all available timer types that can be selected.
+     * @return A JComboBox with all available timer types that can be selected.
      */
-    public static JComboBox<String> getTimerTypeComboBox() {
+    public static JComboBox<String> getTimerOptions() {
         JComboBox<String> timerTypeComboBox = new JComboBox<>(TIMER_TYPE_OPTIONS);
         timerTypeComboBox.setBorder(null);
 
@@ -103,9 +103,9 @@ public final class RowComponents {
     }
 
     /**
-     * @return
+     * @return A JComboBox with all known available alert sound options.
      */
-    public static JComboBox<String> getAlarmOptions() {
+    public static JComboBox<String> getAlertOptions() {
         JComboBox<String> alarmOptions = new JComboBox<>(ALARM_OPTIONS);
         alarmOptions.setBorder(null);
 
@@ -121,7 +121,7 @@ public final class RowComponents {
      *
      * @return An empty JPanel with a CardLayout that needs components added to it.
      */
-    public static JPanel getClockPanel() {
+    public static JPanel getTimePanel() {
         CardLayout clockCardLayout = new CardLayout();
         JPanel clockPanel = new JPanel(clockCardLayout);
 
@@ -212,6 +212,18 @@ public final class RowComponents {
         midnight.set(Calendar.MINUTE, 0);
         midnight.set(Calendar.SECOND, 0);
         return midnight.getTime();
+    }
+
+    public static JToggleButton getLoopToggle() {
+
+        JToggleButton loopToggle = new JToggleButton();
+
+        loopToggle.setIcon(REPEAT_SYMBOL_OFF);
+        loopToggle.setSelectedIcon(REPEAT_SYMBOL_ON);
+
+        loopToggle.setPreferredSize(new Dimension(TIMER_REPEAT_TOGGLE_WIDTH, ROW_HEIGHT));
+
+        return loopToggle;
     }
 
 }
