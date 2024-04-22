@@ -1,7 +1,5 @@
 package app;
 
-import javazoom.jl.converter.Converter;
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -22,9 +20,11 @@ import static app.GlobalConstants.*;
 public class RowTimer extends JPanel implements ActionListener {
 
     // Timer variable
-    private int initialTime, remainingTime;
-    private Timer timer;
-    private Audio timerCompletedSound;
+    private int time;
+    private int minTime = 5000; // Minimum timer duration in milliseconds
+    private Timer timer, ticker;
+    private Audio alertSound;
+    private boolean isTimerRunning = false, isTickerRunning = false;
 
 
     // Component variables
@@ -33,13 +33,13 @@ public class RowTimer extends JPanel implements ActionListener {
     private JButton multiActionButton;
     private JButton stopButton;
     private JComboBox<String> timerTypeComboBox;
-    private JComboBox<String> alarmOptions;
+    private JComboBox<String> alertOptions;
     private JPanel clockPanel;
     private CardLayout clockCardLayout;
     private JSpinner simpleSpinner;
     private JSpinner relativeSpinner;
     private JLabel timeRemaining;
-    private JToggleButton repeatTimerToggle;
+    private JToggleButton loopToggle;
 
 
     public RowTimer() {
@@ -110,13 +110,13 @@ public class RowTimer extends JPanel implements ActionListener {
         this.add(this.timerTypeComboBox, constraints);
 
         // Alarm sound dropdown list - Determines what sound plays when the timer completes
-        this.alarmOptions = RowComponents.getAlarmOptions();
-        this.alarmOptions.addActionListener(this);
-        this.alarmOptions.setActionCommand("Alarm Sound");
+        this.alertOptions = RowComponents.getAlarmOptions();
+        this.alertOptions.addActionListener(this);
+        this.alertOptions.setActionCommand("Alarm Sound");
 
         constraints.gridx = xPos++;
         constraints.weightx = 0;
-        this.add(this.alarmOptions, constraints);
+        this.add(this.alertOptions, constraints);
 
         // Clock panel - Changes time shown depending on Timer type and state
         this.clockPanel = RowComponents.getClockPanel();
@@ -147,12 +147,12 @@ public class RowTimer extends JPanel implements ActionListener {
 
     private void initializeTimerRepeatToggle(int xPos) {
 
-        this.repeatTimerToggle = new JToggleButton();
+        this.loopToggle = new JToggleButton();
 
-        this.repeatTimerToggle.setIcon(REPEAT_SYMBOL_OFF);
-        this.repeatTimerToggle.setSelectedIcon(REPEAT_SYMBOL_ON);
+        this.loopToggle.setIcon(REPEAT_SYMBOL_OFF);
+        this.loopToggle.setSelectedIcon(REPEAT_SYMBOL_ON);
 
-        this.repeatTimerToggle.setPreferredSize(new Dimension(TIMER_REPEAT_TOGGLE_WIDTH, ROW_HEIGHT));
+        this.loopToggle.setPreferredSize(new Dimension(TIMER_REPEAT_TOGGLE_WIDTH, ROW_HEIGHT));
 
         // Instantiate a constraints object for adding the component to the TimerRow
         GridBagConstraints constraints = new GridBagConstraints();
@@ -160,24 +160,24 @@ public class RowTimer extends JPanel implements ActionListener {
 
         constraints.gridx = xPos;
         constraints.weightx = 0;
-        this.add(this.repeatTimerToggle, constraints);
+        this.add(this.loopToggle, constraints);
     }
 
-    private void getInitialTime() {
+    private void calculateTime() {
 
         String selection = (String) this.timerTypeComboBox.getSelectedItem();
 
-        this.initialTime = 0;
+        this.time = 0;
 
         assert selection != null;
         if (selection.equals(OPTION_1)) {
 
             Calendar endTime = Calendar.getInstance();
-            endTime.setTime((Date) simpleSpinner.getValue());
+            endTime.setTime((Date) this.simpleSpinner.getValue());
 
-            this.initialTime += UnitConverter.hoursToMilliseconds(endTime.get(Calendar.HOUR));
-            this.initialTime += UnitConverter.minutesToMilliseconds(endTime.get(Calendar.MINUTE));
-            this.initialTime += UnitConverter.secondsToMilliseconds(endTime.get(Calendar.SECOND));
+            this.time += UnitConverter.hoursToMilliseconds(endTime.get(Calendar.HOUR));
+            this.time += UnitConverter.minutesToMilliseconds(endTime.get(Calendar.MINUTE));
+            this.time += UnitConverter.secondsToMilliseconds(endTime.get(Calendar.SECOND));
 
         } else if (this.timerTypeComboBox.getSelectedItem().equals(OPTION_2)) {
 
@@ -188,7 +188,7 @@ public class RowTimer extends JPanel implements ActionListener {
             startTime += UnitConverter.minutesToMilliseconds(calendar.get(Calendar.MINUTE));
 
             // End time is the time after the hour in ms that the timer should finish at
-            calendar.setTime((Date) relativeSpinner.getValue());
+            calendar.setTime((Date) this.relativeSpinner.getValue());
             int endTime = calendar.get(Calendar.MILLISECOND);
             endTime += UnitConverter.secondsToMilliseconds(calendar.get(Calendar.SECOND));
             endTime += UnitConverter.minutesToMilliseconds(calendar.get(Calendar.MINUTE));
@@ -199,94 +199,128 @@ public class RowTimer extends JPanel implements ActionListener {
             // If end time is after start time by at least 5 seconds
             if (timeDifference > 5000) {
                 // Time to Alert = Targeted time past the hour - time which has already past
-                this.initialTime = endTime - startTime;
+                this.time = endTime - startTime;
             }
             else { // If start time is after end time...
                 // Time to Alert = Time remaining on the current hour + targeted time past the next hour
-                this.initialTime = (UnitConverter.hoursToMilliseconds(1) - startTime) + endTime;
+                this.time = (UnitConverter.hoursToMilliseconds(1) - startTime) + endTime;
             }
         }
-
-        this.remainingTime = this.initialTime;                                  // Assign the initial time to the remaining time
-
-        System.out.println("Timer countdown initialized to: " + this.initialTime);
-
+        System.out.println("Timer countdown initialized to: " + this.time + " ms");
     }
 
     /**
      * This method updates the time remaining int class variable, the time remaining JLabel,
      * and stops the timer if the time remaining has reached 0.
      */
-    private void updateTimeRemaining() {
+    private void updateTime() {
 
-        int millisecondsPerHour = 3600000;
-        int millisecondsPerMinute = 60000;
-        int millisecondsPerSecond = 1000;
+        int hours = (int) UnitConverter.millisecondsToHours(this.time);
+        int minutes = (int) UnitConverter.millisecondsToMinutes(this.time) - UnitConverter.hoursToMinutes(hours);
+        int seconds = (int) UnitConverter.millisecondsToSeconds(this.time) - UnitConverter.hoursToSeconds(hours) - UnitConverter.minutesToSeconds(minutes);
 
-        int hours = this.remainingTime / millisecondsPerHour;
-        int minutes = this.remainingTime % millisecondsPerHour / millisecondsPerMinute;
-        int seconds = this.remainingTime % millisecondsPerMinute / millisecondsPerSecond;
+        if (hours >= 0 && minutes >= 0 && seconds >= 0) {
 
-        String timeText = "";
+            String timeText = "";
 
-        if (this.initialTime / millisecondsPerHour != 0) {
-            timeText = String.format("%02d", hours) + ':';
+            if (timerTypeComboBox.getSelectedItem().equals(OPTION_1)) {
+                timeText = String.format("%02d", hours) + ':';
+            }
+            timeText += String.format("%02d", minutes) + ':';
+            timeText += String.format("%02d", seconds);
+
+            this.timeRemaining.setText(timeText);
         }
-        timeText += String.format("%02d", minutes) + ':';
-        timeText += String.format("%02d", seconds);
-
-        this.timeRemaining.setText(timeText);
-
-        // Take action if there is no remaining time
-        if (hours <= 0 && minutes <= 0 && seconds <= 0) {
-
-            // Play the selected alarm sound
-            System.out.println("Check 1");
-            this.timer.cancel();
-            this.timerCompletedSound.play();
-
-            // Do different things depending on if the timer repeat button is selected
-            if (this.repeatTimerToggle.isSelected()) {
-
-                System.out.println("Repeat is ON. Looping...");
-
-                this.getInitialTime();
-                this.setAlertSound();
-
-                boolean isDaemon = false;                                                   // Make the timer thread non-daemon so it closes on exit
-                this.timer = new Timer(isDaemon);                                           // Set up the timer with this as the action listener
-                this.timer.scheduleAtFixedRate(getTimerTask(), 0, 1000);     // Start the timer with one second parameters
-
-                System.out.println("Check 2");
-
-            }
-            else { // If timer repeat is off
-
-                System.out.println("Repeat is OFF. Stopping...");
-
-                this.multiActionButton.setEnabled(false);               // Disable the multi-action button until "Reset" has been pressed to prevent hearing noises from another dimension
-                this.multiActionButton.setText("Start");                // Revert the multi-action button back to Start
-                this.multiActionButton.setBackground(GREEN.darker());   // Set "Start" to have a green background
-
-                this.stopButton.setText("Reset");                       // Set the stop button to "Reset"
-            }
+        else {
+            System.out.println("Warning: time is being updated after the timer has finished");
         }
     }
 
-    private TimerTask getTimerTask() {
+    /**
+     * @return The task that needs to be performed at the end of the timer.
+     */
+    private TimerTask timerTask() {
         return new TimerTask() {
             @Override
             public void run() {
-                remainingTime -= 1000;
-                updateTimeRemaining();
+
+                alertSound.play();                                      // Play the alert sound to indicate the timer is done
+
+                if (!loopToggle.isSelected()) {                         // If the timer has not been set to loop...
+
+                    stopTicker();                                       // Cancel the ticker
+                    stopTimer();                                        // Cancel the timer
+
+                    multiActionButton.setEnabled(false);                // Disable the multi-action button until "Reset" has been pressed to prevent hearing noises from another dimension
+                    multiActionButton.setText("Start");                 // Revert the multi-action button back to Start
+                    multiActionButton.setBackground(GREEN.darker());    // Set "Start" to have a green background
+
+                    stopButton.setText("Reset");                        // Set the stop button to "Reset" mode
+                }
+                else {                                                  // If the timer is set to loop...
+                    setAlertSound();                                    // Reset alert sound
+                    startTimer();                                       // Restart the timer
+                }
             }
         };
     }
 
+    /**
+     *
+     * @return The task that needs to be carried out every second while the timer is running.
+     */
+    private TimerTask tickerTask() {
+        return new TimerTask() {
+            @Override
+            public void run() {
+                time -= 1000;
+                updateTime();
+            }
+        };
+    }
+
+    private void startTimer() {
+        this.calculateTime();                                                   // Calculate the timer's lifespan
+        if (this.time < minTime) {                                              // If the time's lifespan is below the minimum...
+            throw new IllegalArgumentException("Timer is too short!");          // Throw an exception
+        }
+        if (!isTimerRunning) {
+            boolean isDaemon = false;                                           // Set timer to be a background thread
+            this.timer = new Timer(isDaemon);                                   // Start a new timer
+            this.isTimerRunning = true;                                         // Indicate timer is running
+        }
+        if (!isTickerRunning) {                                                 // If the ticker is no longer running...
+            startTicker();                                                      // Schedule a new ticker with its task
+        } else {
+            time += 1000;                                                       // Correct ticker by one second if continuing to run
+        }
+        this.timer.schedule(this.timerTask(), time);                            // Schedule a new timer with its task
+    }
+
+    private void startTicker() {
+        int period = 1000;                                                      // Ticker operates on a per-second basis
+        int delay = time % period + period;                                     // Delay to line up ticker with end time
+        System.out.println("Ticker start delay of " + delay + " ms");           // Console print statement about delay time
+        boolean isDaemon = false;                                               // Set ticker to be a background thread
+        this.ticker = new Timer(isDaemon);                                      // Start a new timer for ticker
+        this.ticker.scheduleAtFixedRate(this.tickerTask(), delay, period);      // Schedule the ticker's task
+        this.isTickerRunning = true;                                            // Indicate ticker is running
+    }
+
+    private void stopTimer() {
+        this.timer.cancel();
+        this.isTimerRunning = false;
+    }
+
+    private void stopTicker() {
+        this.ticker.cancel();
+        this.isTickerRunning = false;
+    }
+
     private void setAlertSound() {
         System.out.println("Setting alert sound...");
-        String soundFileName = (String) this.alarmOptions.getSelectedItem();
-        this.timerCompletedSound = new Audio("sounds/" + soundFileName);
+        String soundFileName = (String) this.alertOptions.getSelectedItem();
+        this.alertSound = new Audio("sounds/" + soundFileName);
     }
 
 
@@ -306,12 +340,12 @@ public class RowTimer extends JPanel implements ActionListener {
 
                 case "Alarm Sound":
 
-                    if (this.timerCompletedSound != null) {
-                        this.timerCompletedSound.stop();
+                    if (this.alertSound != null) {
+                        this.alertSound.stop();
                     }
 
                     this.setAlertSound();
-                    this.timerCompletedSound.play();
+                    this.alertSound.play();
                     break;
             }
 
@@ -324,30 +358,12 @@ public class RowTimer extends JPanel implements ActionListener {
             switch (((JButton) e.getSource()).getText()) {
 
                 case "Start":
-
-                    this.getInitialTime();  // Get the time from the spinner
-
-                    // Prevent the timer from starting if no time has been set.
-                    if (this.remainingTime == 0) {
-                        break;
-                    }
-                    updateTimeRemaining();  // Update the JLabel with the countdown time
-
-                    // Start method continues below in the "Resume" method
-
                 case "Resume":
 
-                    // If resuming a relative timer, recalculate the time remaining.
-                    if (this.timerTypeComboBox.getSelectedItem().equals(OPTION_2)) {
-                        this.getInitialTime();  // Get the time from the spinner
-                        updateTimeRemaining();  // Update the JLabel with the countdown time
-                    }
+                    startTimer();                                           // Start the timer
+                    updateTime();                                           // Update the JLabel with the initial countdown time
 
                     this.setAlertSound();                                   // Get and set the currently selected alert sound
-
-                    boolean isDaemon = false;                               // Make the timer thread non-daemon so it closes on exit
-                    this.timer = new Timer(isDaemon);                       // Set up the timer with this as the action listener
-                    this.timer.scheduleAtFixedRate(this.getTimerTask(), 0, 1000);
 
                     this.multiActionButton.setText("Pause");                // Set the start button's next option as "Pause"
                     this.multiActionButton.setBackground(YELLOW);           // Set "Pause" to have a yellow background
@@ -358,7 +374,8 @@ public class RowTimer extends JPanel implements ActionListener {
 
                 case "Pause":
 
-                    this.timer.cancel();
+                    this.stopTicker();                                      // Cancel the ticker
+                    this.stopTimer();                                       // Cancel the timer
 
                     this.multiActionButton.setText("Resume");               // Set the start button's next option as "Resume"
                     this.multiActionButton.setBackground(BLUE);             // Set "Resume" to have a blue background
@@ -368,13 +385,14 @@ public class RowTimer extends JPanel implements ActionListener {
                 case "Reset":
 
                     this.stopButton.setText("Stop");                        // Revert the stop button back to "Stop"
-                    this.timerCompletedSound.stop();                        // Stops the alarm if still going
+                    this.alertSound.stop();                                 // Stops the alarm if still going
 
                     // Reset method continues below in the "Stop" method
 
                 case "Stop":
 
-                    this.timer.cancel();                                    // Cancel the countdown
+                    this.stopTicker();                                      // Cancel the ticker
+                    this.stopTimer();                                       // Cancel the timer
 
                     this.multiActionButton.setText("Start");                // Revert the multi-action button back to "Start"
                     this.multiActionButton.setBackground(GREEN);            // Set "Start" to have a green background
@@ -386,7 +404,6 @@ public class RowTimer extends JPanel implements ActionListener {
                     this.multiActionButton.setEnabled(true);                // Re-enable the Multi-action Button
 
                     break;
-
             }
         }
     }
