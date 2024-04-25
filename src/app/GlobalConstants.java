@@ -63,7 +63,8 @@ public final class GlobalConstants {
         ALARM_OPTIONS = soundFolder.list(filter);
     }
 
+    // TimerModule Component Names
 
-
+    public static final String ROW_NUMBER = "Row Number";
 
 }

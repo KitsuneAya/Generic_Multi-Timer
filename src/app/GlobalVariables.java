@@ -12,7 +12,10 @@ public final class GlobalVariables {
     // Number of Rows in the Main Window
     public static int rowCount = 0;
 
-    // ArrayLists
-    public static ArrayList<JPanel> rows = new ArrayList<>();
+    // The upper content panel containing the TimerModules
+    public static JPanel upperContentPanel;
+
+    // ArrayList of TimerModules
+    public static ArrayList<TimerModule> timerModules = new ArrayList<>();
 
 }

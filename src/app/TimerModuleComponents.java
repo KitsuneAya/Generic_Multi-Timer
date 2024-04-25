@@ -13,7 +13,7 @@ import static app.GlobalVariables.rowCount;
  * @author <a href="https://steamcommunity.com/id/KitsuneAya/">Ayaya</a>
  * @apiNote Methods for instantiating new components for timer rows.
  */
-public final class RowComponents {
+public final class TimerModuleComponents {
 
     /**
      * A method for instantiating a new JLabel of the timer row's numerical position.
@@ -26,6 +26,8 @@ public final class RowComponents {
         JLabel rowNumberLabel = new JLabel(String.valueOf(rowCount));                       // Label with row number
         rowNumberLabel.setPreferredSize(new Dimension(ROW_NUMBER_WIDTH, ROW_HEIGHT));       // Set the size of the label
         rowNumberLabel.setHorizontalAlignment(JLabel.HORIZONTAL);                           // Center align the label's text
+
+        rowNumberLabel.setToolTipText("Double click to delete this timer");                 // Set the tool tip text
 
         if (rowCount % 2 == 1) {                                                            // Change the font color depending
             rowNumberLabel.setForeground(Color.WHITE);                                      // on if the row # is even or odd

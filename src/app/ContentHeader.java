@@ -9,17 +9,16 @@ import static app.GlobalConstants.*;
  * @author <a href="https://steamcommunity.com/id/KitsuneAya/">Ayaya</a>
  * @apiNote A JPanel containing column labels for use as a header in a JScrollPane
  */
-public final class ColumnHeaders {
+public class ContentHeader extends JPanel {
 
-    public static JPanel getHeader() {
+    public ContentHeader() {
 
         // A variable that will add components from left to right
         // in a first-come first-served manner
         int xPos = 0;
 
-        // Instantiate the JPanel that everything in the row will be added into
-        // Uses a GridBagLayout to control component width sizing
-        JPanel headerPanel = new JPanel(new GridBagLayout());
+        // Set layout as a GridBagLayout
+        this.setLayout(new GridBagLayout());
 
         // Instantiate a constraints object for adding components to the row panel
         GridBagConstraints constraints = new GridBagConstraints();
@@ -32,7 +31,7 @@ public final class ColumnHeaders {
 
         constraints.gridx = xPos++;
         constraints.weightx = 0;
-        headerPanel.add(rowNumbersHeader, constraints);
+        this.add(rowNumbersHeader, constraints);
 
 
         // Timer Names Header
@@ -42,7 +41,7 @@ public final class ColumnHeaders {
 
         constraints.gridx = xPos++;
         constraints.weightx = 1;
-        headerPanel.add(timerNamesHeader, constraints);
+        this.add(timerNamesHeader, constraints);
 
 
         // Controls Header
@@ -52,7 +51,7 @@ public final class ColumnHeaders {
 
         constraints.gridx = xPos++;
         constraints.weightx = 0;
-        headerPanel.add(controlsHeader, constraints);
+        this.add(controlsHeader, constraints);
 
 
         // Timer Type Header
@@ -62,7 +61,8 @@ public final class ColumnHeaders {
 
         constraints.gridx = xPos++;
         constraints.weightx = 0;
-        headerPanel.add(timerTypeHeader, constraints);
+        this.add(timerTypeHeader, constraints);
+
 
         // Alarm Sound Header
         JLabel alarmSoundHeader = new JLabel("Alarm Sound");
@@ -71,7 +71,8 @@ public final class ColumnHeaders {
 
         constraints.gridx = xPos++;
         constraints.weightx = 0;
-        headerPanel.add(alarmSoundHeader, constraints);
+        this.add(alarmSoundHeader, constraints);
+
 
         // Time Header
         JLabel timeHeader = new JLabel("Time");
@@ -80,7 +81,7 @@ public final class ColumnHeaders {
 
         constraints.gridx = xPos++;
         constraints.weightx = 0;
-        headerPanel.add(timeHeader, constraints);
+        this.add(timeHeader, constraints);
 
 
         // Timer Repeat Header
@@ -90,9 +91,8 @@ public final class ColumnHeaders {
 
         constraints.gridx = xPos++;
         constraints.weightx = 0;
-        headerPanel.add(repeatHeader, constraints);
+        this.add(repeatHeader, constraints);
 
-        return headerPanel;
     }
 
 }

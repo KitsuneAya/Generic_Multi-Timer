@@ -5,6 +5,8 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.util.*;
 import java.util.Timer;
 
@@ -15,14 +17,16 @@ import static app.GlobalConstants.*;
  * @author <a href="https://steamcommunity.com/id/KitsuneAya/">Ayaya</a>
  * @apiNote A JPanel which has a timer and java swing components for controlling it.
  */
-public class RowTimer extends JPanel implements ActionListener {
+public class TimerModule extends JPanel implements ActionListener, MouseListener {
 
-    // Timer variable
+    // Timer variables
     private int time;
     private Timer timer, ticker;
     private Audio alertSound;
     private boolean isTimerRunning = false, isTickerRunning = false;
 
+    // Metadata variables
+    private int rowPosition;
 
     // Component variables
     private final JLabel ROW_NUMBER_LABEL;
@@ -42,10 +46,14 @@ public class RowTimer extends JPanel implements ActionListener {
     /**
      * Default constructor that instantiates a new RowTimer object.
      */
-    public RowTimer() {
+    public TimerModule() {
 
-        // Get the next available row number
+        // Get the next available row number and assign it to this TimerModule
         rowCount++;
+        rowPosition = rowCount;
+
+        // Add this to the global ArrayList of instantiated TimerModules
+        GlobalVariables.timerModules.add(this);
 
         // Specify that the TimerRow will use a GridBagLayout
         this.setLayout(new GridBagLayout());
@@ -58,10 +66,6 @@ public class RowTimer extends JPanel implements ActionListener {
 
         this.setBorder(new EmptyBorder(topPadding, leftPadding, bottomPadding, rightPadding));
 
-        // Color the row depending on if it's an even or odd row number
-        if (rowCount % 2 == 0) { this.setBackground(Color.LIGHT_GRAY); }        // Even row color
-        else { this.setBackground(Color.DARK_GRAY); }                           // Odd row color
-
         // A variable that will add components from left to right
         // in a first-come first-served manner
         int xPos = 0;
@@ -73,7 +77,9 @@ public class RowTimer extends JPanel implements ActionListener {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Row number - Label to show the vertical position of the row
-        this.ROW_NUMBER_LABEL = RowComponents.getRowNumberLabel();
+        this.ROW_NUMBER_LABEL = TimerModuleComponents.getRowNumberLabel();
+        this.ROW_NUMBER_LABEL.setName(GlobalConstants.ROW_NUMBER);
+        this.ROW_NUMBER_LABEL.addMouseListener(this);
 
         constraints.gridx = xPos++;
         constraints.weightx = 0;
@@ -82,7 +88,7 @@ public class RowTimer extends JPanel implements ActionListener {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Timer Name - Optional name chosen by the user for the Timer
-        this.TIMER_NAME_FIELD = RowComponents.getTimerNameField();
+        this.TIMER_NAME_FIELD = TimerModuleComponents.getTimerNameField();
 
         constraints.gridx = xPos++;
         constraints.weightx = 1;
@@ -91,7 +97,7 @@ public class RowTimer extends JPanel implements ActionListener {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Multi-action Button - Starts/Pauses/Resumes the Timer
-        this.MULTI_ACTION_BUTTON = RowComponents.getMultiActionButton();
+        this.MULTI_ACTION_BUTTON = TimerModuleComponents.getMultiActionButton();
         this.MULTI_ACTION_BUTTON.addActionListener(this);
 
         constraints.gridx = xPos++;
@@ -101,7 +107,7 @@ public class RowTimer extends JPanel implements ActionListener {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Stop button - Stops and resets the Timer
-        this.STOP_BUTTON = RowComponents.getStopButton();
+        this.STOP_BUTTON = TimerModuleComponents.getStopButton();
         this.STOP_BUTTON.addActionListener(this);
 
         constraints.gridx = xPos++;
@@ -111,7 +117,7 @@ public class RowTimer extends JPanel implements ActionListener {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Timer type dropdown list - Changes how the Timer works
-        this.TIMER_OPTIONS = RowComponents.getTimerOptions();
+        this.TIMER_OPTIONS = TimerModuleComponents.getTimerOptions();
         this.TIMER_OPTIONS.addActionListener(this);
         this.TIMER_OPTIONS.setActionCommand("Timer Type");
 
@@ -122,7 +128,7 @@ public class RowTimer extends JPanel implements ActionListener {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Alarm sound dropdown list - Determines what sound plays when the timer completes
-        this.ALERT_OPTIONS = RowComponents.getAlertOptions();
+        this.ALERT_OPTIONS = TimerModuleComponents.getAlertOptions();
         this.ALERT_OPTIONS.addActionListener(this);
         this.ALERT_OPTIONS.setActionCommand("Alarm Sound");
 
@@ -133,7 +139,7 @@ public class RowTimer extends JPanel implements ActionListener {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Clock panel - Changes time shown depending on Timer type and state
-        this.TIME_PANEL = RowComponents.getTimePanel();
+        this.TIME_PANEL = TimerModuleComponents.getTimePanel();
         this.TIME_PANEL_LAYOUT = (CardLayout) this.TIME_PANEL.getLayout();
 
         constraints.gridx = xPos++;
@@ -141,27 +147,31 @@ public class RowTimer extends JPanel implements ActionListener {
         this.add(this.TIME_PANEL, constraints);
 
         // Simple countdown input
-        this.SIMPLE_SPINNER = RowComponents.getSimpleDateSpinner();
+        this.SIMPLE_SPINNER = TimerModuleComponents.getSimpleDateSpinner();
         this.SIMPLE_SPINNER.setName("Simple");
         this.TIME_PANEL.add(this.SIMPLE_SPINNER, OPTION_1);
 
         // Minutes past the hour input
-        this.RELATIVE_SPINNER = RowComponents.getRelativeDateSpinner();
+        this.RELATIVE_SPINNER = TimerModuleComponents.getRelativeDateSpinner();
         this.RELATIVE_SPINNER.setName("Relative");
         this.TIME_PANEL.add(this.RELATIVE_SPINNER, OPTION_2);
 
         // Time remaining card
-        this.TIME_REMAINING_LABEL = RowComponents.getTimeRemainingLabel();
+        this.TIME_REMAINING_LABEL = TimerModuleComponents.getTimeRemainingLabel();
         this.TIME_PANEL.add(this.TIME_REMAINING_LABEL, COUNTDOWN);
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Timer Repeat Option Toggle
-        this.LOOP_TOGGLE = RowComponents.getLoopToggle();
+        this.LOOP_TOGGLE = TimerModuleComponents.getLoopToggle();
 
         constraints.gridx = xPos;
         constraints.weightx = 0;
         this.add(this.LOOP_TOGGLE, constraints);
+
+
+        // Color the row depending on its rowPosition
+        this.updateRowColors();
 
     }
 
@@ -358,8 +368,14 @@ public class RowTimer extends JPanel implements ActionListener {
         this.alertSound = new Audio("sounds/" + soundFileName);
     }
 
-    public void setRowLabelText(int rowNum) {
-        this.ROW_NUMBER_LABEL.setText(String.valueOf(rowNum));
+    public int getRowNumber() {
+        return this.rowPosition;
+    }
+
+    public void promoteRowNumber() {
+        this.rowPosition--;
+        this.updateRowNumber();
+        this.updateRowColors();
     }
 
     public void setNameFieldText(String text) {
@@ -448,6 +464,99 @@ public class RowTimer extends JPanel implements ActionListener {
 
                     break;
             }
+        }
+    }
+
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
+
+        if (e.getSource() instanceof JLabel label) {                                // Actions for JLabels
+            if (label.getName().equals(ROW_NUMBER)) {                               // Actions for ROW_NUMBER_LABEL
+                if (e.getButton() == MouseEvent.BUTTON1) {                          // Actions for the left mouse button
+                    if (e.getClickCount() == 2) {                                   // Actions for double clicks
+
+                        // Removes this TimerModule from the application and updates remaining TimerModules //
+
+                        GridBagLayout gbl = (GridBagLayout) GlobalVariables.upperContentPanel.getLayout();
+                        GridBagConstraints gbc = new GridBagConstraints();
+                        gbc.fill = GridBagConstraints.HORIZONTAL;
+                        gbc.weightx = 1;
+
+                        // Redo the GridBagConstraints y positioning within the upperContentPanel
+                        // for all modules that came after this
+                        for (int i = timerModules.indexOf(this); i < timerModules.size(); i++) {
+
+                            TimerModule timerModule = timerModules.get(i);
+                            timerModule.promoteRowNumber();
+
+                            gbc.gridy = timerModule.getRowNumber() - 1;         // Row numbers start at 1, so subtract 1 to set the first gridy to 0;
+                            gbl.setConstraints(timerModule, gbc);
+                            GlobalVariables.upperContentPanel.revalidate();
+                        }
+
+                        GlobalVariables.upperContentPanel.remove(this);
+                        GlobalVariables.timerModules.remove(this);
+
+                        GlobalVariables.rowCount--;
+                        GlobalVariables.upperContentPanel.revalidate();
+
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+
+        if (e.getSource() instanceof JLabel label) {                                // Actions for JLabels
+            if (label.getName().equals(ROW_NUMBER)) {                               // Actions for ROW_NUMBER_LABEL
+
+                ROW_NUMBER_LABEL.setOpaque(true);
+
+                ROW_NUMBER_LABEL.setForeground(Color.RED.brighter());
+                ROW_NUMBER_LABEL.setBackground(Color.RED.darker().darker());
+
+                ROW_NUMBER_LABEL.setText("X");
+            }
+        }
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+
+        if (e.getSource() instanceof JLabel label) {                                // Actions for JLabels
+            if (label.getName().equals(ROW_NUMBER)) {                               // Actions for ROW_NUMBER_LABEL
+
+                ROW_NUMBER_LABEL.setOpaque(false);
+                this.updateRowNumber();
+                this.updateRowColors();
+            }
+        }
+    }
+
+    private void updateRowNumber() {
+        ROW_NUMBER_LABEL.setText(String.valueOf(this.rowPosition));
+    }
+
+    private void updateRowColors() {
+        if (rowPosition % 2 == 1) { // Odd row color
+            ROW_NUMBER_LABEL.setForeground(Color.WHITE);
+            this.setBackground(Color.DARK_GRAY);
+        } else { // Even row color
+            ROW_NUMBER_LABEL.setForeground(Color.BLACK);
+            this.setBackground(Color.LIGHT_GRAY);
         }
     }
 }

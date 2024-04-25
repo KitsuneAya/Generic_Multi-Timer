@@ -2,6 +2,8 @@ package app;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 import static app.GlobalVariables.*;
 
@@ -11,7 +13,7 @@ import static app.GlobalVariables.*;
  */
 public class MainWindow extends JFrame {
 
-    private JScrollPane scrollPane;
+    private final JScrollPane SCROLL_PANE;
 
     public MainWindow() {
 
@@ -23,33 +25,70 @@ public class MainWindow extends JFrame {
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
 
 
+
         // Instantiate the JScrollPane
-        this.scrollPane = new JScrollPane(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        this.getContentPane().add(this.scrollPane); // Add the JScrollPane to the MainWindow's ContentPane
+        SCROLL_PANE = new JScrollPane(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        this.getContentPane().add(SCROLL_PANE); // Add the JScrollPane to the MainWindow's ContentPane
 
+        // Set the scroll pane's column header
+        SCROLL_PANE.setColumnHeaderView(new ContentHeader());
 
-        // Create a JPanel to throw into the JScrollPane
-        JPanel contentPanel = new JPanel(new GridBagLayout());
-        contentPanel.setBackground(Color.GRAY);
-
-        this.scrollPane.setViewportView(contentPanel);
 
 
         // Initialize constraints
         GridBagConstraints constraints = new GridBagConstraints();
-        constraints.anchor = GridBagConstraints.NORTH;
         constraints.fill = GridBagConstraints.HORIZONTAL;
         constraints.weightx = 1;
         constraints.weighty = 0;
 
-        // Add the column headers
-        scrollPane.setColumnHeaderView(ColumnHeaders.getHeader());
 
-        // Add 10 rows
 
-        for (int i = 0; i < 10; i++) {
-            constraints.gridy = rowCount;
-            contentPanel.add(new RowTimer(), constraints);
+        // Create a JPanel to hold content as the JScrollPane's client
+        JPanel contentPanel;
+        contentPanel = new JPanel(new GridBagLayout());
+        SCROLL_PANE.setViewportView(contentPanel);
+
+
+
+        // Create a JPanel to act as an upper section within contentPanel
+        GlobalVariables.upperContentPanel = new JPanel(new GridBagLayout());
+
+        constraints.gridy = 0;
+        contentPanel.add(GlobalVariables.upperContentPanel, constraints);
+
+
+
+        // Create a JPanel to act as a lower section within contentPanel
+        JPanel lowerContentPanel = new JPanel(new GridBagLayout());
+
+        constraints.gridy = 1;
+        contentPanel.add(lowerContentPanel, constraints);
+
+
+
+        // Add 3 timers
+        for (int i = 0; i < 3; i++) {
+            this.addTimer();
         }
+
+
+        // Add new row button
+        JButton addTimerModuleButton = new JButton("⌄ ⌄ ⌄  Add Another Timer  ⌄ ⌄ ⌄");
+        addTimerModuleButton.setBackground(Color.DARK_GRAY.darker());
+        addTimerModuleButton.setForeground(Color.WHITE);
+        addTimerModuleButton.addActionListener(e -> this.addTimer());
+        lowerContentPanel.add(addTimerModuleButton, constraints);
+    }
+
+    private void addTimer() {
+
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        constraints.weightx = 1;
+
+        constraints.gridy = rowCount;
+        upperContentPanel.add(new TimerModule(), constraints);
+
+        SCROLL_PANE.revalidate();
     }
 }
